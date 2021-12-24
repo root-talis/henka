@@ -1,0 +1,2 @@
+# mig
+Golang migrations library
