@@ -116,6 +116,8 @@ func (m *versionMap) updateDescription(migration Migration, direction Direction)
 			migration.Name,
 		)
 
+	// IDK how to get this case to show up in coverage.
+	// It would only be reached if file names are fetched from FS in reverse order.
 	case direction == Down:
 		version.CanUndo = true
 		(*m)[migration.Version] = version
