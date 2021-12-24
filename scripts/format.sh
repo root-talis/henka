@@ -8,4 +8,4 @@ if [ $exists -ne 0 ]; then
 fi
 
 goimports -w .
-gci -w -local github.com/root-talis/mig .
+gci -w -local github.com/root-talis/henka .

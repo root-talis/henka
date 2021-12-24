@@ -1,4 +1,4 @@
-module github.com/root-talis/mig
+module github.com/root-talis/henka
 
 go 1.17
 

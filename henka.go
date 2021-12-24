@@ -1,4 +1,4 @@
-package mig
+package henka
 
 import (
 	"fmt"
@@ -49,7 +49,7 @@ type MigrationState struct {
 
 // ---
 
-type Mig interface {
+type Henka interface {
 	Validate() (*ValidationResult, error)
 	Upgrade(maxVersion Version) error
 	Downgrade(toVersion Version) error
@@ -64,15 +64,15 @@ type ValidationResult struct {
 
 // ---
 
-type migImpl struct {
+type henkaImpl struct {
 	source Source
 	driver Driver
 }
 
 // ---
 
-func NewMig(source Source, driver Driver) Mig {
-	return &migImpl{
+func New(source Source, driver Driver) Henka {
+	return &henkaImpl{
 		source: source,
 		driver: driver,
 	}
@@ -80,7 +80,7 @@ func NewMig(source Source, driver Driver) Mig {
 
 // ---
 
-func (m *migImpl) Validate() (*ValidationResult, error) {
+func (m *henkaImpl) Validate() (*ValidationResult, error) {
 	availableMigrations, err := m.source.GetAvailableMigrations()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get the list of available migrations: %w", err)
@@ -140,15 +140,15 @@ func (m *migImpl) Validate() (*ValidationResult, error) {
 	return &result, nil
 }
 
-func (m *migImpl) Upgrade(maxVersion Version) error {
+func (m *henkaImpl) Upgrade(maxVersion Version) error {
 	return nil
 }
 
-func (m *migImpl) Downgrade(toVersion Version) error {
+func (m *henkaImpl) Downgrade(toVersion Version) error {
 	return nil
 }
 
-func (m *migImpl) loadSortedMigrationsFromDB() (*map[Version]MigrationState, error) {
+func (m *henkaImpl) loadSortedMigrationsFromDB() (*map[Version]MigrationState, error) {
 	migrations, err := m.driver.ListAppliedMigrations()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load migrations from db: %w", err)
