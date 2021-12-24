@@ -1,0 +1,23 @@
+linters:
+  enable-all: true
+  disable:
+    # unused:
+    - exhaustivestruct
+    - nlreturn
+    - wsl
+    - godot
+    - lll
+    - nilnil
+    - ireturn
+    - gofumpt
+    - gci
+    # deprecated:
+    - maligned
+    - interfacer
+    - scopelint
+    - golint
+  fast: false
+
+linters-settings:
+  gomoddirectives:
+    replace-local: true
