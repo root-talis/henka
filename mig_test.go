@@ -26,7 +26,7 @@ func (m *sourceMock) GetAvailableMigrations() (*[]mig.MigrationDescription, erro
 	return &m.availableMigrations.descr, m.availableMigrations.err
 }
 
-func (m *sourceMock) ReadMigration(version mig.Version, direction mig.Direction) (io.Reader, error) {
+func (m *sourceMock) ReadMigration(migration mig.Migration, direction mig.Direction) (io.Reader, error) {
 	return nil, nil
 }
 
@@ -45,16 +45,9 @@ func (m *driverMock) ListAppliedMigrations() (*[]mig.MigrationState, error) {
 	return &m.appliedMigrations.state, m.appliedMigrations.err
 }
 
-// -- test for Mig.Validate() ------------
-
-type validateTest struct {
-	name                string
-	availableMigrations sourceGetAvailableMigrationsResult
-	appliedMigrations   driverListAppliedMigrationsResult
-
-	expectedResult mig.ValidationResult
-	expectError    bool
-}
+//
+// -- Tests for Mig.Validate() ------------
+//
 
 var migrations = []mig.MigrationDescription{ // nolint:gochecknoglobals
 	{Migration: mig.Migration{Version: 20210124131258, Name: "initial_structure"}, CanUndo: false},
@@ -65,7 +58,14 @@ var migrations = []mig.MigrationDescription{ // nolint:gochecknoglobals
 
 var ErrAny = errors.New("test error")
 
-var validateTests = []validateTest{ // nolint:gochecknoglobals
+var validateTestsTable = []struct { // nolint:gochecknoglobals
+	name                string
+	availableMigrations sourceGetAvailableMigrationsResult
+	appliedMigrations   driverListAppliedMigrationsResult
+
+	expectedResult mig.ValidationResult
+	expectError    bool
+}{
 	// -- success cases: ---
 	/* 0 */ {
 		name: "test 0: should spot all pending migrations (0)",
@@ -263,7 +263,7 @@ func TestValidate(t *testing.T) {
 	t.Parallel()
 	t.Logf("Should correctly evaluate current database state.")
 
-	for _, test := range validateTests {
+	for _, test := range validateTestsTable {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()

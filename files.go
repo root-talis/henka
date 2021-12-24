@@ -4,27 +4,28 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
+	"io/fs"
 	"sort"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
-type fileSource struct {
+type filesSource struct {
 	migrationsDir string
+	fs            fs.FS
 }
 
 const versionLength = 14
 
 var (
 	ErrMigrationsDirectoryIsNotADirectory = errors.New("migrationsDirectory is not a directory")
+	ErrMigrationFileNameIsInvalid         = errors.New("migration file name is invalid")
 )
 
-func NewFileSource(migrationsDirectory string) (Source, error) {
-	stat, err := os.Stat(migrationsDirectory)
+func NewFilesSource(fileSystem fs.FS, migrationsDirectory string) (Source, error) {
+	stat, err := fs.Stat(fileSystem, migrationsDirectory)
 
-	if os.IsNotExist(err) {
+	if err != nil {
 		return nil, fmt.Errorf("failed to stat migrations directory: %w", err)
 	}
 
@@ -32,13 +33,14 @@ func NewFileSource(migrationsDirectory string) (Source, error) {
 		return nil, ErrMigrationsDirectoryIsNotADirectory
 	}
 
-	return &fileSource{
+	return &filesSource{
 		migrationsDir: migrationsDirectory,
+		fs:            fileSystem,
 	}, nil
 }
 
-func (rdr *fileSource) GetAvailableMigrations() (*[]MigrationDescription, error) {
-	dirEntries, err := os.ReadDir(rdr.migrationsDir)
+func (rdr *filesSource) GetAvailableMigrations() (*[]MigrationDescription, error) {
+	dirEntries, err := fs.ReadDir(rdr.fs, rdr.migrationsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read contents of migrations directory: %w", err)
 	}
@@ -107,7 +109,8 @@ func (m *versionMap) updateDescription(migration Migration, direction Direction)
 
 	case version.Name != migration.Name:
 		return fmt.Errorf(
-			"migration %d already exists with name \"%s\" (new name \"%s\" is encountered)",
+			"%w: version %d has conflicting names: \"%s\" and \"%s\"",
+			ErrMigrationDuplicated,
 			migration.Version,
 			version.Name,
 			migration.Name,
@@ -123,7 +126,7 @@ func (m *versionMap) updateDescription(migration Migration, direction Direction)
 
 func getValidMigrationFromFileName(fileName string) (Migration, error) {
 	if !strings.HasPrefix(fileName, "V") {
-		return Migration{}, fmt.Errorf("migration file name is invalid: %s", fileName)
+		return Migration{}, fmt.Errorf("%w: %s", ErrMigrationFileNameIsInvalid, fileName)
 	}
 
 	migrationFullName := strings.TrimPrefix(fileName, "V")
@@ -133,33 +136,26 @@ func getValidMigrationFromFileName(fileName string) (Migration, error) {
 	asRunes := []rune(migrationFullName)
 
 	if len(asRunes) < versionLength+1 {
-		return Migration{}, fmt.Errorf("migration file name is too short to be valid: %s", fileName)
+		return Migration{}, fmt.Errorf("%w: %s is too short", ErrMigrationFileNameIsInvalid, fileName)
 	}
 
 	version := asRunes[:versionLength]
-
-	for _, c := range version {
-		if !unicode.IsDigit(c) {
-			return Migration{}, fmt.Errorf(
-				"migration file name does not contain a valid version (symbol \"%c\" is not allowed): %s",
-				c,
-				fileName,
-			)
-		}
-	}
-
 	v := string(version)
 	versionAsInt, err := strconv.ParseUint(v, 0, VersionBits)
 	if err != nil {
-		return Migration{}, fmt.Errorf("migration file name does not contain a valid version: %s", fileName)
+		return Migration{}, fmt.Errorf("%w: %s does not contain a valid version", ErrMigrationFileNameIsInvalid, fileName)
 	}
 
 	nameAsRunes := asRunes[versionLength:]
 	if nameAsRunes[0] != '_' {
-		return Migration{}, fmt.Errorf("migration file is missing an underscore after version (%c given): %s", nameAsRunes[0], fileName)
+		return Migration{}, fmt.Errorf("%w: %s is missing an underscore after version (%c given)",
+			ErrMigrationFileNameIsInvalid, fileName, nameAsRunes[0])
 	}
 
 	name := strings.TrimPrefix(string(nameAsRunes), "_")
+	if len(name) == 0 {
+		return Migration{}, fmt.Errorf("%w: %s is missing name section", ErrMigrationFileNameIsInvalid, fileName)
+	}
 
 	return Migration{
 		Version: Version(versionAsInt),
@@ -167,6 +163,6 @@ func getValidMigrationFromFileName(fileName string) (Migration, error) {
 	}, nil
 }
 
-func (rdr *fileSource) ReadMigration(version Version, direction Direction) (io.Reader, error) {
+func (rdr *filesSource) ReadMigration(migration Migration, direction Direction) (io.Reader, error) {
 	return nil, nil
 }
