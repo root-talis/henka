@@ -7,8 +7,8 @@ echo "Usage:
 Commands:
   clean      - remove all temporary files and test cache;
   format     - automatically format source code;
-  lint       - run linters;
   help       - show this help message;
+  lint       - run linters;
   test       - run tests;
   test-cover - run tests with coverage;
 

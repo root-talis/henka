@@ -57,7 +57,7 @@ var migrations = []migration.Description{ // nolint:gochecknoglobals
 	{Migration: migration.Migration{Version: 20210608080148, Name: "sessions_table_indexes"}, CanUndo: false},
 }
 
-func notUndoable(mig migration.Description) migration.Description {
+func disableUndo(mig migration.Description) migration.Description {
 	mig.CanUndo = false
 	return mig
 }
@@ -169,7 +169,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
-				{Description: notUndoable(migrations[1]), Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
+				{Description: disableUndo(migrations[1]), Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
 			},
 			MissingCount: 1,
 		},
@@ -187,8 +187,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
-				{Description: notUndoable(migrations[0]), Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
-				{Description: notUndoable(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
+				{Description: disableUndo(migrations[0]), Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
+				{Description: disableUndo(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
 			},
 			MissingCount: 2,
 		},
@@ -208,7 +208,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
 				{Description: migrations[0], Status: migration.Applied, AppliedAt: time.Unix(12345, 0)},
-				{Description: notUndoable(migrations[1]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
+				{Description: disableUndo(migrations[1]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
 				{Description: migrations[2], Status: migration.Applied, AppliedAt: time.Unix(12347, 0)},
 			},
 			AppliedCount: 2,
@@ -319,7 +319,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			Migrations: []migration.State{
 				{Description: migrations[0], Status: migration.Applied, AppliedAt: time.Unix(12349, 0)},
 				{Description: migrations[1], Status: migration.Pending},
-				{Description: notUndoable(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12350, 0)},
+				{Description: disableUndo(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12350, 0)},
 				{Description: migrations[3], Status: migration.Pending},
 			},
 			PendingCount: 2,
