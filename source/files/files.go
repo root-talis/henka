@@ -1,4 +1,4 @@
-package henka
+package files
 
 import (
 	"errors"
@@ -8,6 +8,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/root-talis/henka/migration"
+	"github.com/root-talis/henka/source"
 )
 
 type filesSource struct {
@@ -22,7 +25,7 @@ var (
 	ErrMigrationFileNameIsInvalid         = errors.New("migration file name is invalid")
 )
 
-func NewFilesSource(fileSystem fs.FS, migrationsDirectory string) (Source, error) {
+func NewFilesSource(fileSystem fs.FS, migrationsDirectory string) (source.Source, error) {
 	stat, err := fs.Stat(fileSystem, migrationsDirectory)
 
 	if err != nil {
@@ -39,7 +42,7 @@ func NewFilesSource(fileSystem fs.FS, migrationsDirectory string) (Source, error
 	}, nil
 }
 
-func (rdr *filesSource) GetAvailableMigrations() (*[]MigrationDescription, error) {
+func (rdr *filesSource) GetAvailableMigrations() (*[]migration.Description, error) {
 	dirEntries, err := fs.ReadDir(rdr.fs, rdr.migrationsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read contents of migrations directory: %w", err)
@@ -53,15 +56,15 @@ func (rdr *filesSource) GetAvailableMigrations() (*[]MigrationDescription, error
 		}
 
 		fileName := entry.Name()
-		migration, err := getValidMigrationFromFileName(fileName)
+		mig, err := getValidMigrationFromFileName(fileName)
 		if err != nil {
 			continue
 		}
 
 		if strings.HasSuffix(fileName, ".up.sql") {
-			err = migrations.updateDescription(migration, Up)
+			err = migrations.updateDescription(mig, migration.Up)
 		} else if strings.HasSuffix(fileName, ".down.sql") {
-			err = migrations.updateDescription(migration, Down)
+			err = migrations.updateDescription(mig, migration.Down)
 		}
 
 		if err != nil {
@@ -87,48 +90,48 @@ func getSortedVersions(migrations versionMap) []int {
 	return keys
 }
 
-func buildMigrationsSlice(keys []int, migrations versionMap) []MigrationDescription {
-	result := make([]MigrationDescription, len(keys))
+func buildMigrationsSlice(keys []int, migrations versionMap) []migration.Description {
+	result := make([]migration.Description, len(keys))
 	for i, k := range keys {
-		result[i] = migrations[Version(k)]
+		result[i] = migrations[migration.Version(k)]
 	}
 	return result
 }
 
-type versionMap map[Version]MigrationDescription
+type versionMap map[migration.Version]migration.Description
 
-func (m *versionMap) updateDescription(migration Migration, direction Direction) error {
-	version, exists := (*m)[migration.Version]
+func (m *versionMap) updateDescription(mig migration.Migration, direction migration.Direction) error {
+	version, exists := (*m)[mig.Version]
 
 	switch {
 	case !exists:
-		(*m)[migration.Version] = MigrationDescription{
-			Migration: migration,
-			CanUndo:   direction == Down,
+		(*m)[mig.Version] = migration.Description{
+			Migration: mig,
+			CanUndo:   direction == migration.Down,
 		}
 
-	case version.Name != migration.Name:
+	case version.Name != mig.Name:
 		return fmt.Errorf(
 			"%w: version %d has conflicting names: \"%s\" and \"%s\"",
-			ErrMigrationDuplicated,
-			migration.Version,
+			source.ErrMigrationDuplicated,
+			mig.Version,
 			version.Name,
-			migration.Name,
+			mig.Name,
 		)
 
 	// IDK how to get this case to show up in coverage.
 	// It would only be reached if file names are fetched from FS in reverse order.
-	case direction == Down:
+	case direction == migration.Down:
 		version.CanUndo = true
-		(*m)[migration.Version] = version
+		(*m)[mig.Version] = version
 	}
 
 	return nil
 }
 
-func getValidMigrationFromFileName(fileName string) (Migration, error) {
+func getValidMigrationFromFileName(fileName string) (migration.Migration, error) {
 	if !strings.HasPrefix(fileName, "V") {
-		return Migration{}, fmt.Errorf("%w: %s", ErrMigrationFileNameIsInvalid, fileName)
+		return migration.Migration{}, fmt.Errorf("%w: %s", ErrMigrationFileNameIsInvalid, fileName)
 	}
 
 	migrationFullName := strings.TrimPrefix(fileName, "V")
@@ -138,33 +141,33 @@ func getValidMigrationFromFileName(fileName string) (Migration, error) {
 	asRunes := []rune(migrationFullName)
 
 	if len(asRunes) < versionLength+1 {
-		return Migration{}, fmt.Errorf("%w: %s is too short", ErrMigrationFileNameIsInvalid, fileName)
+		return migration.Migration{}, fmt.Errorf("%w: %s is too short", ErrMigrationFileNameIsInvalid, fileName)
 	}
 
 	version := asRunes[:versionLength]
 	v := string(version)
-	versionAsInt, err := strconv.ParseUint(v, 0, VersionBits)
+	versionAsInt, err := strconv.ParseUint(v, 0, migration.VersionBits)
 	if err != nil {
-		return Migration{}, fmt.Errorf("%w: %s does not contain a valid version", ErrMigrationFileNameIsInvalid, fileName)
+		return migration.Migration{}, fmt.Errorf("%w: %s does not contain a valid version", ErrMigrationFileNameIsInvalid, fileName)
 	}
 
 	nameAsRunes := asRunes[versionLength:]
 	if nameAsRunes[0] != '_' {
-		return Migration{}, fmt.Errorf("%w: %s is missing an underscore after version (%c given)",
+		return migration.Migration{}, fmt.Errorf("%w: %s is missing an underscore after version (%c given)",
 			ErrMigrationFileNameIsInvalid, fileName, nameAsRunes[0])
 	}
 
 	name := strings.TrimPrefix(string(nameAsRunes), "_")
 	if len(name) == 0 {
-		return Migration{}, fmt.Errorf("%w: %s is missing name section", ErrMigrationFileNameIsInvalid, fileName)
+		return migration.Migration{}, fmt.Errorf("%w: %s is missing name section", ErrMigrationFileNameIsInvalid, fileName)
 	}
 
-	return Migration{
-		Version: Version(versionAsInt),
+	return migration.Migration{
+		Version: migration.Version(versionAsInt),
 		Name:    name,
 	}, nil
 }
 
-func (rdr *filesSource) ReadMigration(migration Migration, direction Direction) (io.Reader, error) {
+func (rdr *filesSource) ReadMigration(migration migration.Migration, direction migration.Direction) (io.Reader, error) {
 	return nil, nil
 }

@@ -1,17 +1,17 @@
 help:
-	@scripts/help.sh
+	@make_scripts/help.sh
 
 clean:
-	@scripts/clean.sh
+	@make_scripts/clean.sh
 
 format:
-	@scripts/format.sh
+	@make_scripts/format.sh
 
 lint:
-	@scripts/lint.sh
+	@make_scripts/lint.sh
 
 test:
-	@scripts/test.sh
+	@make_scripts/test.sh
 
 test-cover:
-	@scripts/test-cover.sh
+	@make_scripts/test-cover.sh

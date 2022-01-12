@@ -1,29 +1,32 @@
-package henka
+package mysql
 
 import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/root-talis/henka/driver"
+	"github.com/root-talis/henka/migration"
 )
 
-type MysqlDriverConfig struct {
+type DriverConfig struct {
 	DatabaseName        string
 	MigrationsTableName string
 }
 
 type mysqlDriver struct {
 	conn   *sql.DB
-	config MysqlDriverConfig
+	config DriverConfig
 }
 
-func NewMysqlMigDriver(conn *sql.DB, config MysqlDriverConfig) Driver {
+func NewMysqlDriver(conn *sql.DB, config DriverConfig) driver.Driver {
 	return &mysqlDriver{
 		conn:   conn,
 		config: config,
 	}
 }
 
-func (driver *mysqlDriver) ListAppliedMigrations() (*[]MigrationState, error) {
+func (driver *mysqlDriver) ListAppliedMigrations() (*[]migration.State, error) {
 	tableName := driver.makeEscapedMigrationsTableName()
 
 	if err := driver.ensureMigrationsTableExists(&tableName); err != nil {
@@ -39,10 +42,10 @@ func (driver *mysqlDriver) ListAppliedMigrations() (*[]MigrationState, error) {
 	}
 	defer rows.Close()
 
-	result := make([]MigrationState, 0)
+	result := make([]migration.State, 0)
 	for rows.Next() {
-		state := MigrationState{
-			Status: MigrationApplied,
+		state := migration.State{
+			Status: migration.Applied,
 		}
 
 		var appliedAt string

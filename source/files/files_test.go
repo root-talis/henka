@@ -1,4 +1,4 @@
-package henka_test
+package files_test
 
 import (
 	"io/fs"
@@ -7,7 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/root-talis/henka"
+	"github.com/root-talis/henka/migration"
+	"github.com/root-talis/henka/source/files"
 )
 
 var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
@@ -16,7 +17,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 	expectErrorWhenCalling  bool
 	directory               string
 	fs                      fstest.MapFS
-	expectedMigrations      []henka.MigrationDescription
+	expectedMigrations      []migration.Description
 }{
 	// -- success tests ------
 	/* s0 */ {
@@ -29,8 +30,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s1 */ {
@@ -44,9 +45,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224081255, Name: "initial"}, CanUndo: false},
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224081255, Name: "initial"}, CanUndo: false},
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s2 */ {
@@ -60,9 +61,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"tmp/.Xs223xxSCa/V20211224091800_add_users_table.down.sql": {},
 			"tmp/.Xs223xxSCa/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224081255, Name: "initial"}, CanUndo: false},
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224081255, Name: "initial"}, CanUndo: false},
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s3 */ {
@@ -76,8 +77,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s4 */ {
@@ -91,8 +92,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s5 */ {
@@ -106,8 +107,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s6 */ {
@@ -121,8 +122,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s7 */ {
@@ -136,8 +137,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s8 */ {
@@ -151,8 +152,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s9 */ {
@@ -170,8 +171,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s10 */ {
@@ -187,8 +188,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 	/* s11 */ {
@@ -204,8 +205,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations/V20211224091800_add_users_table.down.sql": {},
 			"migrations/V20211224091800_add_users_table.up.sql":   {},
 		},
-		expectedMigrations: []henka.MigrationDescription{
-			{Migration: henka.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
+		expectedMigrations: []migration.Description{
+			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
 		},
 	},
 
@@ -262,7 +263,7 @@ func TestGetAvailableMigrations(t *testing.T) {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			src, err := henka.NewFilesSource(test.fs, test.directory)
+			src, err := files.NewFilesSource(test.fs, test.directory)
 
 			if test.expectErrorWhenCreating {
 				assert.Error(t, err)

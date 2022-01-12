@@ -3,60 +3,22 @@ package henka
 import (
 	"fmt"
 	"sort"
-	"time"
+
+	"github.com/root-talis/henka/driver"
+	"github.com/root-talis/henka/migration"
+	source2 "github.com/root-talis/henka/source"
 )
-
-type Direction uint
-
-const (
-	Down Direction = 0
-	Up   Direction = 1
-)
-
-// ---
-
-const VersionBits = 64
-
-type Version uint64
-
-type Migration struct {
-	Version Version
-	Name    string
-}
-
-// ---
-
-type MigrationStatus uint
-
-const (
-	MigrationPending MigrationStatus = iota
-	MigrationApplied
-	MigrationMissing
-)
-
-// ---
-
-type MigrationDescription struct {
-	Migration
-	CanUndo bool
-}
-
-type MigrationState struct {
-	MigrationDescription
-	Status    MigrationStatus
-	AppliedAt time.Time
-}
 
 // ---
 
 type Henka interface {
 	Validate() (*ValidationResult, error)
-	Upgrade(maxVersion Version) error
-	Downgrade(toVersion Version) error
+	Upgrade(maxVersion migration.Version) error
+	Downgrade(toVersion migration.Version) error
 }
 
 type ValidationResult struct {
-	Migrations   []MigrationState
+	Migrations   []migration.State
 	AppliedCount uint
 	PendingCount uint
 	MissingCount uint
@@ -65,13 +27,13 @@ type ValidationResult struct {
 // ---
 
 type henkaImpl struct {
-	source Source
-	driver Driver
+	source source2.Source
+	driver driver.Driver
 }
 
 // ---
 
-func New(source Source, driver Driver) Henka {
+func New(source source2.Source, driver driver.Driver) Henka {
 	return &henkaImpl{
 		source: source,
 		driver: driver,
@@ -92,24 +54,24 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 	}
 
 	result := ValidationResult{
-		Migrations: make([]MigrationState, 0, len(*availableMigrations)),
+		Migrations: make([]migration.State, 0, len(*availableMigrations)),
 	}
 	for _, availableMigration := range *availableMigrations {
 		entry, ok := (*appliedMigrations)[availableMigration.Version]
 
-		var status MigrationStatus
+		var status migration.Status
 		if ok {
-			status = MigrationApplied
+			status = migration.Applied
 			result.AppliedCount++
 		} else {
-			status = MigrationPending
+			status = migration.Pending
 			result.PendingCount++
 		}
 
-		result.Migrations = append(result.Migrations, MigrationState{
-			MigrationDescription: availableMigration,
-			Status:               status,
-			AppliedAt:            entry.AppliedAt,
+		result.Migrations = append(result.Migrations, migration.State{
+			Description: availableMigration,
+			Status:      status,
+			AppliedAt:   entry.AppliedAt,
 		})
 	}
 
@@ -124,10 +86,10 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 		}
 
 		if !found {
-			result.Migrations = append(result.Migrations, MigrationState{
-				MigrationDescription: applied.MigrationDescription,
-				Status:               MigrationMissing,
-				AppliedAt:            applied.AppliedAt,
+			result.Migrations = append(result.Migrations, migration.State{
+				Description: applied.Description,
+				Status:      migration.Missing,
+				AppliedAt:   applied.AppliedAt,
 			})
 			result.MissingCount++
 		}
@@ -140,21 +102,21 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 	return &result, nil
 }
 
-func (m *henkaImpl) Upgrade(maxVersion Version) error {
+func (m *henkaImpl) Upgrade(maxVersion migration.Version) error {
 	return nil
 }
 
-func (m *henkaImpl) Downgrade(toVersion Version) error {
+func (m *henkaImpl) Downgrade(toVersion migration.Version) error {
 	return nil
 }
 
-func (m *henkaImpl) loadSortedMigrationsFromDB() (*map[Version]MigrationState, error) {
+func (m *henkaImpl) loadSortedMigrationsFromDB() (*map[migration.Version]migration.State, error) {
 	migrations, err := m.driver.ListAppliedMigrations()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load migrations from db: %w", err)
 	}
 
-	result := make(map[Version]MigrationState, len(*migrations))
+	result := make(map[migration.Version]migration.State, len(*migrations))
 	for _, m := range *migrations {
 		result[m.Version] = m
 	}
