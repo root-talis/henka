@@ -57,6 +57,22 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 	result := ValidationResult{
 		Migrations: make([]migration.State, 0, len(*availableMigrations)),
 	}
+
+	addAppliedMigrations(&result, appliedMigrations, availableMigrations)
+	addMissingMigrations(&result, appliedMigrations, availableMigrations)
+
+	sort.Slice(result.Migrations, func(i, j int) bool {
+		return result.Migrations[i].Version < result.Migrations[j].Version
+	})
+
+	return &result, nil
+}
+
+func addAppliedMigrations(
+	result *ValidationResult,
+	appliedMigrations *map[migration.Version]migration.State,
+	availableMigrations *[]migration.Description,
+) {
 	for _, availableMigration := range *availableMigrations {
 		entry, ok := (*appliedMigrations)[availableMigration.Version]
 
@@ -79,7 +95,13 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 			AppliedAt:   entry.AppliedAt,
 		})
 	}
+}
 
+func addMissingMigrations(
+	result *ValidationResult,
+	appliedMigrations *map[migration.Version]migration.State,
+	availableMigrations *[]migration.Description,
+) {
 	for _, applied := range *appliedMigrations {
 		found := false
 
@@ -101,12 +123,6 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 			result.MissingCount++
 		}
 	}
-
-	sort.Slice(result.Migrations, func(i, j int) bool {
-		return result.Migrations[i].Version < result.Migrations[j].Version
-	})
-
-	return &result, nil
 }
 
 func (m *henkaImpl) Upgrade(maxVersion migration.Version) error {
