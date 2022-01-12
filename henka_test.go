@@ -73,8 +73,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 	expectError    bool
 }{
 	// -- success cases: ---
-	/* 0 */ {
-		name: "test 0: should spot all pending migrations (0)",
+	/* s0 */ {
+		name: "test s0: should spot all pending migrations (0)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{
 				// empty
@@ -90,8 +90,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			PendingCount: 0,
 		},
 	},
-	/* 1 */ {
-		name: "test 1: should spot all pending migrations (1)",
+	/* s1 */ {
+		name: "test s1: should spot all pending migrations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1]}, err: nil,
 		},
@@ -105,8 +105,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			PendingCount: 1,
 		},
 	},
-	/* 2 */ {
-		name: "test 2: should spot all pending migrations (2)",
+	/* s2 */ {
+		name: "test s2: should spot all pending migrations (2)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[1]}, err: nil,
 		},
@@ -121,8 +121,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			PendingCount: 2,
 		},
 	},
-	/* 3 */ {
-		name: "test 3: should spot all applied migrations (1)",
+	/* s3 */ {
+		name: "test s3: should spot all applied migrations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0]}, err: nil,
 		},
@@ -138,8 +138,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			AppliedCount: 1,
 		},
 	},
-	/* 4 */ {
-		name: "test 4: should spot all applied migrations (2)",
+	/* s4 */ {
+		name: "test s4: should spot all applied migrations (2)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
 		},
@@ -157,8 +157,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			AppliedCount: 2,
 		},
 	},
-	/* 5 */ {
-		name: "test 5: should spot all missing migrations (1)",
+	/* s5 */ {
+		name: "test s5: should spot all missing migrations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{}, err: nil,
 		},
@@ -174,8 +174,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			MissingCount: 1,
 		},
 	},
-	/* 6 */ {
-		name: "test 6: should spot all missing migrations (2)",
+	/* s6 */ {
+		name: "test s6: should spot all missing migrations (2)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{}, err: nil,
 		},
@@ -193,8 +193,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			MissingCount: 2,
 		},
 	},
-	/* 7 */ {
-		name: "test 7: should correctly sort missing migrations",
+	/* s7 */ {
+		name: "test s7: should correctly sort missing migrations",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[2]}, err: nil,
 		},
@@ -215,22 +215,111 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			MissingCount: 1,
 		},
 	},
-	/* 8 */ {
-		name: "test 8: should correctly evaluate complex state",
+	/* s8 */ {
+		name: "test s8: should spot all pending migrations after cancellation (1)",
+		availableMigrations: sourceGetAvailableMigrationsResult{
+			descr: []migration.Description{migrations[1]}, err: nil,
+		},
+		appliedMigrations: driverListAppliedMigrationsResult{
+			log: []migration.Log{
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Down, AppliedAt: time.Unix(12346, 0)},
+			},
+		},
+		expectedResult: henka.ValidationResult{
+			Migrations: []migration.State{
+				{Description: migrations[1], Status: migration.Pending},
+			},
+			PendingCount: 1,
+		},
+	},
+	/* s9 */ {
+		name: "test s9: should spot all pending migrations after cancellation (2)",
+		availableMigrations: sourceGetAvailableMigrationsResult{
+			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
+		},
+		appliedMigrations: driverListAppliedMigrationsResult{
+			log: []migration.Log{
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Down, AppliedAt: time.Unix(12347, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Down, AppliedAt: time.Unix(12348, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12349, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Down, AppliedAt: time.Unix(12350, 0)},
+			},
+		},
+		expectedResult: henka.ValidationResult{
+			Migrations: []migration.State{
+				{Description: migrations[1], Status: migration.Pending},
+				{Description: migrations[2], Status: migration.Pending},
+			},
+			PendingCount: 2,
+		},
+	},
+	/* s10 */ {
+		name: "test s10: should spot all pending and applied migrations with cancellations (1)",
+		availableMigrations: sourceGetAvailableMigrationsResult{
+			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
+		},
+		appliedMigrations: driverListAppliedMigrationsResult{
+			log: []migration.Log{
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Down, AppliedAt: time.Unix(12347, 0)},
+			},
+		},
+		expectedResult: henka.ValidationResult{
+			Migrations: []migration.State{
+				{Description: migrations[1], Status: migration.Applied, AppliedAt: time.Unix(12345, 0)},
+				{Description: migrations[2], Status: migration.Pending},
+			},
+			AppliedCount: 1,
+			PendingCount: 1,
+		},
+	},
+	/* s11 */ {
+		name: "test s11: should spot all pending and applied migrations with cancellations (1)",
+		availableMigrations: sourceGetAvailableMigrationsResult{
+			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
+		},
+		appliedMigrations: driverListAppliedMigrationsResult{
+			log: []migration.Log{
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Down, AppliedAt: time.Unix(12347, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Down, AppliedAt: time.Unix(12348, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12349, 0)},
+			},
+		},
+		expectedResult: henka.ValidationResult{
+			Migrations: []migration.State{
+				{Description: migrations[1], Status: migration.Applied, AppliedAt: time.Unix(12349, 0)},
+				{Description: migrations[2], Status: migration.Pending},
+			},
+			AppliedCount: 1,
+			PendingCount: 1,
+		},
+	},
+	/* s12 */ {
+		name: "test s12: should correctly evaluate complex state",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[1], migrations[3]}, err: nil,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
 			log: []migration.Log{
 				{Migration: migrations[0].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
-				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Down, AppliedAt: time.Unix(12347, 0)},
+				{Migration: migrations[0].Migration, Direction: migration.Down, AppliedAt: time.Unix(12348, 0)},
+				{Migration: migrations[0].Migration, Direction: migration.Up, AppliedAt: time.Unix(12349, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12350, 0)},
 			},
 		},
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
-				{Description: migrations[0], Status: migration.Applied, AppliedAt: time.Unix(12345, 0)},
+				{Description: migrations[0], Status: migration.Applied, AppliedAt: time.Unix(12349, 0)},
 				{Description: migrations[1], Status: migration.Pending},
-				{Description: notUndoable(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
+				{Description: notUndoable(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12350, 0)},
 				{Description: migrations[3], Status: migration.Pending},
 			},
 			PendingCount: 2,
@@ -240,8 +329,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 	},
 
 	// -- error cases: -----
-	/* 9 */ {
-		name: "test 9: should return error if dst.GetAvailableMigrations fails",
+	/* e0 */ {
+		name: "test e0: should return error if dst.GetAvailableMigrations fails",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: nil, err: ErrAny,
 		},
@@ -253,8 +342,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 		expectError: true,
 	},
-	/* 10 */ {
-		name: "test 10: should return error if source.ListAppliedMigrations fails",
+	/* e1 */ {
+		name: "test e1: should return error if source.ListMigrationsLog fails",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[1], migrations[3]}, err: nil,
 		},

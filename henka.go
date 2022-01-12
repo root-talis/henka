@@ -3,6 +3,7 @@ package henka
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/root-talis/henka/driver"
 	"github.com/root-talis/henka/migration"
@@ -61,11 +62,15 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 
 		var status migration.Status
 		if ok {
-			status = migration.Applied
-			result.AppliedCount++
+			status = entry.Status
 		} else {
 			status = migration.Pending
+		}
+
+		if status == migration.Pending {
 			result.PendingCount++
+		} else {
+			result.AppliedCount++
 		}
 
 		result.Migrations = append(result.Migrations, migration.State{
@@ -120,13 +125,24 @@ func (m *henkaImpl) loadSortedMigrationsFromDB() (*map[migration.Version]migrati
 
 	result := make(map[migration.Version]migration.State, len(*migrations))
 	for _, mig := range *migrations {
+		var status migration.Status
+		var appliedAt time.Time
+
+		switch mig.Direction {
+		case migration.Up:
+			status = migration.Applied
+			appliedAt = mig.AppliedAt
+		case migration.Down:
+			status = migration.Pending
+		}
+
 		result[mig.Version] = migration.State{
 			Description: migration.Description{
 				Migration: mig.Migration,
 				CanUndo:   false,
 			},
-			Status:    migration.Applied,
-			AppliedAt: mig.AppliedAt,
+			Status:    status,
+			AppliedAt: appliedAt,
 		}
 	}
 
