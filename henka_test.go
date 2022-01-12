@@ -34,16 +34,16 @@ func (m *sourceMock) ReadMigration(migration migration.Migration, direction migr
 // -- testing double for driver ----------
 
 type driverListAppliedMigrationsResult struct {
-	state []migration.State
-	err   error
+	log []migration.Log
+	err error
 }
 
 type driverMock struct {
 	appliedMigrations driverListAppliedMigrationsResult
 }
 
-func (m *driverMock) ListAppliedMigrations() (*[]migration.State, error) {
-	return &m.appliedMigrations.state, m.appliedMigrations.err
+func (m *driverMock) ListMigrationsLog() (*[]migration.Log, error) {
+	return &m.appliedMigrations.log, m.appliedMigrations.err
 }
 
 //
@@ -51,10 +51,15 @@ func (m *driverMock) ListAppliedMigrations() (*[]migration.State, error) {
 //
 
 var migrations = []migration.Description{ // nolint:gochecknoglobals
-	{Migration: migration.Migration{Version: 20210124131258, Name: "initial_structure"}, CanUndo: false},
+	{Migration: migration.Migration{Version: 20210124131258, Name: "initial_structure"}, CanUndo: true},
 	{Migration: migration.Migration{Version: 20210124132201, Name: "indexes"}, CanUndo: true},
 	{Migration: migration.Migration{Version: 20210608080143, Name: "sessions_table"}, CanUndo: true},
-	{Migration: migration.Migration{Version: 20210608080148, Name: "sessions_table_indexes"}, CanUndo: true},
+	{Migration: migration.Migration{Version: 20210608080148, Name: "sessions_table_indexes"}, CanUndo: false},
+}
+
+func notUndoable(mig migration.Description) migration.Description {
+	mig.CanUndo = false
+	return mig
 }
 
 var ErrAny = errors.New("test error")
@@ -122,8 +127,8 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			descr: []migration.Description{migrations[0]}, err: nil,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
-			state: []migration.State{
-				{Description: migrations[0], Status: migration.Applied, AppliedAt: time.Unix(12345, 0)},
+			log: []migration.Log{
+				{Migration: migrations[0].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
 			},
 		},
 		expectedResult: henka.ValidationResult{
@@ -139,9 +144,9 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
-			state: []migration.State{
-				{Description: migrations[1], AppliedAt: time.Unix(12345, 0)},
-				{Description: migrations[2], AppliedAt: time.Unix(12346, 0)},
+			log: []migration.Log{
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
 			},
 		},
 		expectedResult: henka.ValidationResult{
@@ -158,13 +163,13 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			descr: []migration.Description{}, err: nil,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
-			state: []migration.State{
-				{Description: migrations[1], AppliedAt: time.Unix(12345, 0)},
+			log: []migration.Log{
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
 			},
 		},
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
-				{Description: migrations[1], Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
+				{Description: notUndoable(migrations[1]), Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
 			},
 			MissingCount: 1,
 		},
@@ -175,15 +180,15 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			descr: []migration.Description{}, err: nil,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
-			state: []migration.State{
-				{Description: migrations[0], AppliedAt: time.Unix(12345, 0)},
-				{Description: migrations[2], AppliedAt: time.Unix(12346, 0)},
+			log: []migration.Log{
+				{Migration: migrations[0].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
 			},
 		},
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
-				{Description: migrations[0], Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
-				{Description: migrations[2], Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
+				{Description: notUndoable(migrations[0]), Status: migration.Missing, AppliedAt: time.Unix(12345, 0)},
+				{Description: notUndoable(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
 			},
 			MissingCount: 2,
 		},
@@ -194,16 +199,16 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			descr: []migration.Description{migrations[0], migrations[2]}, err: nil,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
-			state: []migration.State{
-				{Description: migrations[0], AppliedAt: time.Unix(12345, 0)},
-				{Description: migrations[1], AppliedAt: time.Unix(12346, 0)},
-				{Description: migrations[2], AppliedAt: time.Unix(12347, 0)},
+			log: []migration.Log{
+				{Migration: migrations[0].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[1].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12347, 0)},
 			},
 		},
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
 				{Description: migrations[0], Status: migration.Applied, AppliedAt: time.Unix(12345, 0)},
-				{Description: migrations[1], Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
+				{Description: notUndoable(migrations[1]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
 				{Description: migrations[2], Status: migration.Applied, AppliedAt: time.Unix(12347, 0)},
 			},
 			AppliedCount: 2,
@@ -216,16 +221,16 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			descr: []migration.Description{migrations[0], migrations[1], migrations[3]}, err: nil,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
-			state: []migration.State{
-				{Description: migrations[0], AppliedAt: time.Unix(12345, 0)},
-				{Description: migrations[2], AppliedAt: time.Unix(12346, 0)},
+			log: []migration.Log{
+				{Migration: migrations[0].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
 			},
 		},
 		expectedResult: henka.ValidationResult{
 			Migrations: []migration.State{
 				{Description: migrations[0], Status: migration.Applied, AppliedAt: time.Unix(12345, 0)},
 				{Description: migrations[1], Status: migration.Pending},
-				{Description: migrations[2], Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
+				{Description: notUndoable(migrations[2]), Status: migration.Missing, AppliedAt: time.Unix(12346, 0)},
 				{Description: migrations[3], Status: migration.Pending},
 			},
 			PendingCount: 2,
@@ -241,9 +246,9 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 			descr: nil, err: ErrAny,
 		},
 		appliedMigrations: driverListAppliedMigrationsResult{
-			state: []migration.State{
-				{Description: migrations[0], AppliedAt: time.Unix(12345, 0)},
-				{Description: migrations[2], AppliedAt: time.Unix(12346, 0)},
+			log: []migration.Log{
+				{Migration: migrations[0].Migration, Direction: migration.Up, AppliedAt: time.Unix(12345, 0)},
+				{Migration: migrations[2].Migration, Direction: migration.Up, AppliedAt: time.Unix(12346, 0)},
 			},
 		},
 		expectError: true,

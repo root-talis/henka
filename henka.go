@@ -85,6 +85,8 @@ func (m *henkaImpl) Validate() (*ValidationResult, error) {
 			}
 		}
 
+		applied.Description.CanUndo = false
+
 		if !found {
 			result.Migrations = append(result.Migrations, migration.State{
 				Description: applied.Description,
@@ -111,14 +113,21 @@ func (m *henkaImpl) Downgrade(toVersion migration.Version) error {
 }
 
 func (m *henkaImpl) loadSortedMigrationsFromDB() (*map[migration.Version]migration.State, error) {
-	migrations, err := m.driver.ListAppliedMigrations()
+	migrations, err := m.driver.ListMigrationsLog()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load migrations from db: %w", err)
 	}
 
 	result := make(map[migration.Version]migration.State, len(*migrations))
-	for _, m := range *migrations {
-		result[m.Version] = m
+	for _, mig := range *migrations {
+		result[mig.Version] = migration.State{
+			Description: migration.Description{
+				Migration: mig.Migration,
+				CanUndo:   false,
+			},
+			Status:    migration.Applied,
+			AppliedAt: mig.AppliedAt,
+		}
 	}
 
 	return &result, nil

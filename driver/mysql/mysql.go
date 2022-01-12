@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/root-talis/henka/driver"
@@ -26,15 +27,15 @@ func NewMysqlDriver(conn *sql.DB, config DriverConfig) driver.Driver {
 	}
 }
 
-func (driver *mysqlDriver) ListAppliedMigrations() (*[]migration.State, error) {
-	tableName := driver.makeEscapedMigrationsTableName()
+func (drv *mysqlDriver) ListMigrationsLog() (*[]migration.Log, error) {
+	tableName := drv.makeEscapedMigrationsTableName()
 
-	if err := driver.ensureMigrationsTableExists(&tableName); err != nil {
+	if err := drv.ensureMigrationsTableExists(&tableName); err != nil {
 		return nil, fmt.Errorf("failed to list applied versions: %w", err)
 	}
 
-	rows, err := driver.conn.Query(fmt.Sprintf(
-		"SELECT version, migration_name, start_time FROM %s ORDER BY version",
+	rows, err := drv.conn.Query(fmt.Sprintf(
+		"SELECT version, migration_name, direction, start_time FROM %s ORDER BY id",
 		tableName,
 	))
 	if err != nil {
@@ -42,46 +43,57 @@ func (driver *mysqlDriver) ListAppliedMigrations() (*[]migration.State, error) {
 	}
 	defer rows.Close()
 
-	result := make([]migration.State, 0)
+	result := make([]migration.Log, 0)
 	for rows.Next() {
-		state := migration.State{
-			Status: migration.Applied,
-		}
-
+		var log migration.Log
 		var appliedAt string
+		var direction string
 
 		rows.Scan(
-			&state.Version,
-			&state.Name,
+			&log.Version,
+			&log.Name,
+			&direction,
 			&appliedAt,
 		)
 
-		state.AppliedAt, err = time.Parse("2006-01-02 15:04:05", appliedAt)
-		if err != nil {
-			state.AppliedAt = time.Time{}
+		switch strings.ToLower(direction) {
+		case "u":
+			log.Direction = migration.Up
+		case "d":
+			log.Direction = migration.Down
+		default:
+			return nil, fmt.Errorf("%w: direction \"%s\" is unknown", driver.ErrInvalidLogTable, direction)
 		}
 
-		result = append(result, state)
+		log.AppliedAt, err = time.Parse("2006-01-02 15:04:05", appliedAt)
+		if err != nil {
+			log.AppliedAt = time.Time{}
+		}
+
+		result = append(result, log)
 	}
 
 	return &result, nil
 }
 
-func (driver *mysqlDriver) makeEscapedMigrationsTableName() string {
+func (drv *mysqlDriver) makeEscapedMigrationsTableName() string {
 	return fmt.Sprintf(
 		"`%s`.`%s`",
-		escapeMysqlString(driver.config.DatabaseName),
-		escapeMysqlString(driver.config.MigrationsTableName),
+		escapeMysqlString(drv.config.DatabaseName),
+		escapeMysqlString(drv.config.MigrationsTableName),
 	)
 }
 
-func (driver *mysqlDriver) ensureMigrationsTableExists(escapedTableName *string) error {
-	_, err := driver.conn.Exec(fmt.Sprintf(
+func (drv *mysqlDriver) ensureMigrationsTableExists(escapedTableName *string) error {
+	_, err := drv.conn.Exec(fmt.Sprintf(
 		"CREATE TABLE IF NOT EXISTS %s ("+
-			"version bigint, "+
+			"id             int not null auto_increment, "+
+			"version        bigint, "+
 			"migration_name varchar(100) null, "+
-			"start_time timestamp default CURRENT_TIMESTAMP not null, "+
-			"end_time   timestamp default '0000-00-00 00:00:00' not null"+
+			"direction      char(1) null, "+ // "u" or "d"
+			"start_time     timestamp default CURRENT_TIMESTAMP not null, "+
+			"end_time       timestamp default '0000-00-00 00:00:00' not null, "+
+			"primary key (id)"+
 			") default charset utf8",
 		*escapedTableName,
 	))
@@ -94,7 +106,7 @@ func (driver *mysqlDriver) ensureMigrationsTableExists(escapedTableName *string)
 }
 
 // originally from https://gist.github.com/siddontang/8875771
-func escapeMysqlString(sql string) string {
+func escapeMysqlString(sql string) string { //nolint:cyclop
 	dest := make([]rune, 0, 2*len(sql))
 
 	for _, character := range sql {

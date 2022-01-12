@@ -2,11 +2,11 @@ package migration
 
 import "time"
 
-type Direction uint
+type Direction rune
 
 const (
-	Down Direction = 0
-	Up   Direction = 1
+	Down Direction = 'd'
+	Up   Direction = 'u'
 )
 
 // ---
@@ -29,6 +29,14 @@ const (
 	Applied
 	Missing
 )
+
+// ---
+
+type Log struct {
+	Migration
+	Direction
+	AppliedAt time.Time
+}
 
 // ---
 
