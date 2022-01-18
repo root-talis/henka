@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
-	"github.com/root-talis/henka/driver"
 	"os"
 	"strings"
 	"sync"
@@ -18,6 +17,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/root-talis/henka/driver"
 	"github.com/root-talis/henka/driver/mysql"
 	"github.com/root-talis/henka/migration"
 )
@@ -530,6 +530,8 @@ func TestMigrate(t *testing.T) { //nolint:paralleltest,tparallel
 }
 
 func runTestMigrations(t *testing.T, migrations []migrationDescr, expectMigrationError bool, drv driver.Driver) {
+	t.Helper()
+
 	for _, mig := range migrations {
 		err := drv.Migrate(mig.migration, mig.direction, mig.script)
 
