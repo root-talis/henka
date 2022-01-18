@@ -10,7 +10,7 @@ Commands:
   help       - show this help message;
   lint       - run linters;
   test       - run all tests;
-  test-short - run all tests EXCEPT integration tests;
   test-cover - run all tests with coverage;
+  test-short - run all tests EXCEPT integration tests;
 
 Have fun!"
