@@ -266,8 +266,11 @@ func makeTestContainer(t *testing.T, version string, rootPassword string) (conte
 	req := testcontainers.ContainerRequest{
 		Image:        version,
 		ExposedPorts: []string{"3306/tcp"},
-		WaitingFor:   wait.ForListeningPort("3306"),
-		Env:          env,
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("3306"),
+			wait.ForLog("mysqld: ready for connections"),
+		),
+		Env: env,
 		Cmd: []string{
 			"--table_definition_cache=10",
 			"--performance_schema=0",

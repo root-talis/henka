@@ -13,8 +13,8 @@ lint:
 test:
 	@make_scripts/test.sh
 
-test-short:
-	@make_scripts/test-short.sh
-
 test-cover:
 	@make_scripts/test-cover.sh
+
+test-short:
+	@make_scripts/test-short.sh
