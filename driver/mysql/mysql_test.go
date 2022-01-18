@@ -300,7 +300,7 @@ func connect(ctx context.Context, t *testing.T, mysqlC testcontainers.Container,
 		fmt.Sprintf("root:%s@tcp(%s)/mysql?multiStatements=true", rootPassword, endpoint))
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("failed to connect to %s: %s", endpoint, err)
 	}
 
 	return conn
