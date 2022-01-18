@@ -21,6 +21,8 @@ type mysqlDriver struct {
 }
 
 func NewDriver(conn *sql.DB, config DriverConfig) driver.Driver {
+	conn.Exec(fmt.Sprintf("use %s", escapeMysqlString(config.DatabaseName))) // todo: do this before migration and then revert
+
 	return &mysqlDriver{
 		conn:   conn,
 		config: config,
@@ -52,6 +54,22 @@ func (drv *mysqlDriver) ListMigrationsLog() (*[]migration.Log, error) {
 }
 
 func (drv *mysqlDriver) Migrate(mig migration.Migration, dir migration.Direction, script string) error {
+	drv.conn.Exec(script) // todo: check for errors
+
+	_, err := drv.conn.Exec(
+		fmt.Sprintf("INSERT INTO %s (version, migration_name, direction, start_time, end_time)"+
+			"VALUES (?, ?, ?, ?, ?)", drv.makeEscapedMigrationsTableName(),
+		),
+		mig.Version,
+		mig.Name,
+		fmt.Sprintf("%c", dir),
+		time.Now(),
+		time.Now(),
+	)
+	if err != nil {
+		return fmt.Errorf("error when writing migration log: %w", err)
+	}
+
 	return nil
 }
 

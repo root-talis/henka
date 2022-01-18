@@ -78,7 +78,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 }{
 	// -- success cases: ---
 	/* s0 */ {
-		name: "test s0: should spot all pending migrations (0)",
+		name: "s0: should spot all pending migrations (0)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{
 				// empty
@@ -95,7 +95,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s1 */ {
-		name: "test s1: should spot all pending migrations (1)",
+		name: "s1: should spot all pending migrations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1]}, err: nil,
 		},
@@ -110,7 +110,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s2 */ {
-		name: "test s2: should spot all pending migrations (2)",
+		name: "s2: should spot all pending migrations (2)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[1]}, err: nil,
 		},
@@ -126,7 +126,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s3 */ {
-		name: "test s3: should spot all applied migrations (1)",
+		name: "s3: should spot all applied migrations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0]}, err: nil,
 		},
@@ -143,7 +143,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s4 */ {
-		name: "test s4: should spot all applied migrations (2)",
+		name: "s4: should spot all applied migrations (2)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
 		},
@@ -162,7 +162,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s5 */ {
-		name: "test s5: should spot all missing migrations (1)",
+		name: "s5: should spot all missing migrations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{}, err: nil,
 		},
@@ -179,7 +179,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s6 */ {
-		name: "test s6: should spot all missing migrations (2)",
+		name: "s6: should spot all missing migrations (2)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{}, err: nil,
 		},
@@ -198,7 +198,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s7 */ {
-		name: "test s7: should correctly sort missing migrations",
+		name: "s7: should correctly sort missing migrations",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[2]}, err: nil,
 		},
@@ -220,7 +220,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s8 */ {
-		name: "test s8: should spot all pending migrations after cancellation (1)",
+		name: "s8: should spot all pending migrations after cancellation (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1]}, err: nil,
 		},
@@ -238,7 +238,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s9 */ {
-		name: "test s9: should spot all pending migrations after cancellation (2)",
+		name: "s9: should spot all pending migrations after cancellation (2)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
 		},
@@ -261,7 +261,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s10 */ {
-		name: "test s10: should spot all pending and applied migrations with cancellations (1)",
+		name: "s10: should spot all pending and applied migrations with cancellations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
 		},
@@ -282,7 +282,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s11 */ {
-		name: "test s11: should spot all pending and applied migrations with cancellations (1)",
+		name: "s11: should spot all pending and applied migrations with cancellations (1)",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[1], migrations[2]}, err: nil,
 		},
@@ -305,7 +305,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s12 */ {
-		name: "test s12: should correctly evaluate complex state",
+		name: "s12: should correctly evaluate complex state",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[1], migrations[3]}, err: nil,
 		},
@@ -334,7 +334,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 
 	// -- error cases: -----
 	/* e0 */ {
-		name: "test e0: should return error if dst.GetAvailableMigrations fails",
+		name: "e0: should return error if dst.GetAvailableMigrations fails",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: nil, err: ErrAny,
 		},
@@ -347,7 +347,7 @@ var validateTestsTable = []struct { // nolint:gochecknoglobals
 		expectError: true,
 	},
 	/* e1 */ {
-		name: "test e1: should return error if source.ListMigrationsLog fails",
+		name: "e1: should return error if source.ListMigrationsLog fails",
 		availableMigrations: sourceGetAvailableMigrationsResult{
 			descr: []migration.Description{migrations[0], migrations[1], migrations[3]}, err: nil,
 		},

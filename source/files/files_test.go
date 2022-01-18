@@ -21,7 +21,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 }{
 	// -- success tests ------
 	/* s0 */ {
-		name:      "test s0: should correctly list all migrations (1)",
+		name:      "s0: should correctly list all migrations (1)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -35,7 +35,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s1 */ {
-		name:      "test s1: should correctly list all migrations (2)",
+		name:      "s1: should correctly list all migrations (2)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -51,7 +51,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s2 */ {
-		name:      "test s2: should correctly list migrations in an non-standard directory",
+		name:      "s2: should correctly list migrations in an non-standard directory",
 		directory: "tmp/.Xs223xxSCa",
 		fs: fstest.MapFS{
 			"tmp/.Xs223xxSCa": {
@@ -67,7 +67,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s3 */ {
-		name:      "test s3: should skip on bad version format (too short)",
+		name:      "s3: should skip on bad version format (too short)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -82,7 +82,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s4 */ {
-		name:      "test s4: should skip on bad version format (does not start with a digit)",
+		name:      "s4: should skip on bad version format (does not start with a digit)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -97,7 +97,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s5 */ {
-		name:      "test s5: should skip on bad version format (does not start with a V)",
+		name:      "s5: should skip on bad version format (does not start with a V)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -112,7 +112,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s6 */ {
-		name:      "test s6: should skip on bad migration name (no underscore before name)",
+		name:      "s6: should skip on bad migration name (no underscore before name)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -127,7 +127,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s7 */ {
-		name:      "test s7: should skip on bad migration name (no name)",
+		name:      "s7: should skip on bad migration name (no name)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -142,7 +142,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s8 */ {
-		name:      "test s8: should skip on bad migration name (no name but with underscore)",
+		name:      "s8: should skip on bad migration name (no name but with underscore)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -157,7 +157,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s9 */ {
-		name:      "test s9: should skip on bad migration name (bad suffix)",
+		name:      "s9: should skip on bad migration name (bad suffix)",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -176,7 +176,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s10 */ {
-		name:      "test s10: should not care about other directories",
+		name:      "s10: should not care about other directories",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -193,7 +193,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		},
 	},
 	/* s11 */ {
-		name:      "test s11: should skip directories with matching name",
+		name:      "s11: should skip directories with matching name",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -212,7 +212,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 
 	// -- error tests --------
 	/* e0 */ {
-		name:      "test e0: should fail when directory does not exist",
+		name:      "e0: should fail when directory does not exist",
 		directory: "henka",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -223,7 +223,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		expectErrorWhenCreating: true,
 	},
 	/* e1 */ {
-		name:      "test e1: should fail on duplicate migration version",
+		name:      "e1: should fail on duplicate migration version",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -236,7 +236,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		expectErrorWhenCalling: true,
 	},
 	/* e2 */ {
-		name:      "test e2: should fail when directory is a file",
+		name:      "e2: should fail when directory is a file",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {},
@@ -244,7 +244,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 		expectErrorWhenCreating: true,
 	},
 	/* e3 */ {
-		name:      "test e3: should fail when directory is a device",
+		name:      "e3: should fail when directory is a device",
 		directory: "migrations",
 		fs: fstest.MapFS{
 			"migrations": {
@@ -257,7 +257,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 
 func TestGetAvailableMigrations(t *testing.T) {
 	t.Parallel()
-	t.Logf("Should correctly test fetching of available migrations from a directory.")
+	t.Logf("Should correctly fetch available migrations from a directory.")
 
 	for _, test := range getAvailableMigrationsTestTable {
 		test := test

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"github.com/root-talis/henka/driver"
 	"os"
 	"strings"
 	"sync"
@@ -273,7 +274,37 @@ var (
 		migration2Sql +
 		migrationErr1Sql +
 		migration4Sql
+
+	migrationScript1Up   = "CREATE TABLE users (id int not null auto_increment, primary key (id)) default charset utf8mb4"
+	migrationScript1Down = "DROP TABLE users"
 )
+
+func makeLogBrief(log migration.Log, startIsNull bool, endIsNull bool) logBrief {
+	return logBrief{
+		version:         uint64(log.Migration.Version),
+		name:            log.Migration.Name,
+		direction:       fmt.Sprintf("%c", log.Direction),
+		startedAtIsNull: startIsNull,
+		endedAtIsNull:   endIsNull,
+	}
+}
+
+type columnDescr struct {
+	Field   string
+	Type    string
+	Null    string
+	Key     string
+	Default string
+	Extra   string
+}
+type columnDescrRaw struct {
+	Field   string
+	Type    string
+	Null    string
+	Key     string
+	Default *string
+	Extra   *string
+}
 
 type validator = func(*testing.T, *sql.Rows)
 type validateStatements = map[string]validator
@@ -297,7 +328,7 @@ var listMigrationsLogTests = []struct {
 }{
 	// -- success cases: ---
 	/* s0 */ {
-		name:             "test s0 - should create new migrations_log table",
+		name:             "s0 - should create new migrations_log table",
 		initialStructure: initEmptyDatabase,
 		driverConfig:     defaultDriverConfig,
 		validateStatements: validateStatements{
@@ -306,7 +337,7 @@ var listMigrationsLogTests = []struct {
 		expectedLog: &[]migration.Log{}, // empty
 	},
 	/* s1 */ {
-		name:             "test s1 - should create new migrations_log table with a custom name",
+		name:             "s1 - should create new migrations_log table with a custom name",
 		initialStructure: initEmptyDatabase,
 		driverConfig: mysql.DriverConfig{
 			DatabaseName:        "testDatabase",
@@ -318,7 +349,7 @@ var listMigrationsLogTests = []struct {
 		expectedLog: &[]migration.Log{}, // empty
 	},
 	/* s2 */ {
-		name:             "test s2 - should not create another migrations_log table",
+		name:             "s2 - should not create another migrations_log table",
 		initialStructure: initDatabaseWithEmptyTable,
 		driverConfig:     defaultDriverConfig,
 		validateStatements: map[string]func(*testing.T, *sql.Rows){
@@ -327,7 +358,7 @@ var listMigrationsLogTests = []struct {
 		expectedLog: &[]migration.Log{}, // empty
 	},
 	/* s3 */ {
-		name:             "test s3 - should return correct log from database",
+		name:             "s3 - should return correct log from database",
 		initialStructure: initDatabaseWithMigrationsSet1,
 		driverConfig:     defaultDriverConfig,
 		expectedLog:      &migrationsSet1Parsed,
@@ -335,7 +366,7 @@ var listMigrationsLogTests = []struct {
 
 	// -- error cases: -----
 	/* e0 */ {
-		name:             "test e0 - should fail if database doesn't exist",
+		name:             "e0 - should fail if database doesn't exist",
 		initialStructure: initEmptyDatabase,
 		expectError:      true,
 		driverConfig: mysql.DriverConfig{
@@ -344,13 +375,13 @@ var listMigrationsLogTests = []struct {
 		},
 	},
 	/* e1 */ {
-		name:             "test e1 - should fail if migrations_log table has bad structure",
+		name:             "e1 - should fail if migrations_log table has bad structure",
 		initialStructure: initDatabaseWithBadTableStructure,
 		expectError:      true,
 		driverConfig:     defaultDriverConfig,
 	},
 	/* e2 */ {
-		name:             "test e2 - should fail if \"direction\" value is incorrect",
+		name:             "e2 - should fail if \"direction\" value is incorrect",
 		initialStructure: initDatabaseWithMigrationsErrSet1,
 		driverConfig:     defaultDriverConfig,
 		expectError:      true,
@@ -404,6 +435,59 @@ func TestListMigrationsLog(t *testing.T) { //nolint:paralleltest,tparallel
 // --- Migrate test ----------------------------------
 //
 
+type migrationDescr struct {
+	migration migration.Migration
+	direction migration.Direction
+	script    string
+}
+
+type logBrief struct {
+	version         uint64
+	name            string
+	direction       string
+	startedAtIsNull bool
+	endedAtIsNull   bool
+}
+
+var migrateTests = []struct {
+	name                 string
+	expectMigrationError bool
+	initialStructure     string
+	driverConfig         mysql.DriverConfig
+	migrations           []migrationDescr
+	expectedLog          []logBrief
+	validateStatements   validateStatements
+	expectedTables       map[string][]columnDescr
+}{
+	/* s0 */ {
+		name:             "s0 - should run single migration",
+		initialStructure: initDatabaseWithEmptyTable,
+		driverConfig:     defaultDriverConfig,
+		migrations: []migrationDescr{
+			{
+				migration: migration1Parsed.Migration,
+				direction: migration.Up,
+				script:    migrationScript1Up,
+			},
+		},
+		expectedLog: []logBrief{
+			makeLogBrief(migration1Parsed, false, false),
+		},
+		expectedTables: map[string][]columnDescr{
+			"testDatabase.users": {
+				{
+					Field:   "id",
+					Type:    "int(11)",
+					Null:    "NO",
+					Key:     "PRI",
+					Default: "",
+					Extra:   "auto_increment",
+				},
+			},
+		},
+	},
+}
+
 func TestMigrate(t *testing.T) { //nolint:paralleltest,tparallel
 	if testing.Short() {
 		t.Skip("skipping integration test for driver/mysql")
@@ -411,7 +495,50 @@ func TestMigrate(t *testing.T) { //nolint:paralleltest,tparallel
 
 	runForAllMysqlVersions(t, "Migrate", func(t *testing.T, version string, conn *sql.DB) {
 		t.Helper()
+
+		for _, test := range migrateTests {
+			test := test
+			t.Run(test.name, func(t *testing.T) {
+				_, err := conn.Exec(test.initialStructure)
+				if err != nil {
+					t.Fatalf("error when initializing database: %s", err)
+				}
+
+				defer func() {
+					_, err := conn.Exec(dropDatabase)
+					if err != nil {
+						t.Fatalf("falied to drop database after test: %s", err)
+					}
+				}()
+
+				drv := mysql.NewDriver(conn, test.driverConfig)
+
+				runTestMigrations(t, test.migrations, test.expectMigrationError, drv)
+
+				actualLog := getMigrationsLog(t, conn)
+				assert.Equal(t, test.expectedLog, actualLog)
+
+				for table, expectedStructure := range test.expectedTables {
+					actualStructure := getTableStructure(t, table, conn)
+					assert.Equal(t, expectedStructure, actualStructure)
+				}
+
+				runValidationStatements(t, test.validateStatements, conn)
+			})
+		}
 	})
+}
+
+func runTestMigrations(t *testing.T, migrations []migrationDescr, expectMigrationError bool, drv driver.Driver) {
+	for _, mig := range migrations {
+		err := drv.Migrate(mig.migration, mig.direction, mig.script)
+
+		if expectMigrationError {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
 }
 
 //
@@ -433,6 +560,104 @@ func runForAllMysqlVersions(t *testing.T, baseName string, test func(t *testing.
 			test(t, version, container.conn)
 		})
 	}
+}
+
+func getMigrationsLog(t *testing.T, conn *sql.DB) []logBrief {
+	t.Helper()
+	result := make([]logBrief, 0, 8)
+
+	rows, err := conn.Query("SELECT version, migration_name, direction, start_time is null, end_time is null FROM testDatabase.migrations_log ORDER BY id")
+	if err != nil {
+		t.Fatalf("failed to query migartions log: %s", err)
+	}
+	if err = rows.Err(); err != nil {
+		t.Fatalf("failed to query migartions log: %s", err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		row := logBrief{}
+		err := rows.Scan(
+			&row.version,
+			&row.name,
+			&row.direction,
+			&row.startedAtIsNull,
+			&row.endedAtIsNull,
+		)
+		if err != nil {
+			t.Fatalf("failed to scan migrations log: %s", err)
+		}
+
+		result = append(result, row)
+	}
+
+	return result
+}
+
+func getTableStructure(t *testing.T, tableName string, conn *sql.DB) []columnDescr {
+	t.Helper()
+
+	rows, err := conn.Query(fmt.Sprintf("desc %s", tableName))
+	if err != nil {
+		t.Fatalf("error when querying table structure for %s: %s", tableName, err)
+	}
+	if err = rows.Err(); err != nil {
+		t.Fatalf("error when querying table structure for %s: %s", tableName, err)
+	}
+	defer rows.Close()
+
+	var structure []columnDescr
+
+	for rows.Next() {
+		var descrRaw columnDescrRaw
+		err := rows.Scan(
+			&descrRaw.Field,
+			&descrRaw.Type,
+			&descrRaw.Null,
+			&descrRaw.Key,
+			&descrRaw.Default,
+			&descrRaw.Extra,
+		)
+		if err != nil {
+			t.Fatalf("failed to scan table description: %s", err)
+		}
+
+		descr := parseRawColumnDescription(descrRaw)
+		structure = append(structure, unifyColumnDescription(descr))
+	}
+
+	return structure
+}
+
+func parseRawColumnDescription(descrRaw columnDescrRaw) columnDescr {
+	def := ""
+	extra := ""
+	if descrRaw.Default != nil {
+		def = *descrRaw.Default
+	}
+	if descrRaw.Extra != nil {
+		extra = *descrRaw.Extra
+	}
+
+	descr := columnDescr{
+		Field:   descrRaw.Field,
+		Type:    descrRaw.Type,
+		Null:    descrRaw.Null,
+		Key:     descrRaw.Key,
+		Default: def,
+		Extra:   extra,
+	}
+
+	return descr
+}
+
+func unifyColumnDescription(descr columnDescr) columnDescr {
+	if descr.Type == "int" { // mysql:8.0 returns int instead of int(11)
+		descr.Type = "int(11)"
+	}
+
+	return descr
 }
 
 func runValidationStatements(t *testing.T, validateStatements validateStatements, conn *sql.DB) {
