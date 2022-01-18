@@ -35,6 +35,10 @@ var versions = []string{
 	"mariadb:10.2",
 }
 
+//
+// -- bootstrap --------------------------------------
+//
+
 type testContainer struct {
 	sync.Mutex
 	ctx       context.Context
@@ -54,7 +58,7 @@ func TestMain(m *testing.M) {
 
 		go func() {
 			defer waitGroup.Done()
-			if err := prepareTestContainer(version); err != nil {
+			if err := setupTestContainer(version); err != nil {
 				failed = true
 				fmt.Printf("error when creating test container for version %s: %s", version, err) //nolint:forbidigo
 			}
@@ -62,10 +66,12 @@ func TestMain(m *testing.M) {
 	}
 
 	waitGroup.Wait()
-	var exitCode int
 
+	var exitCode int
 	if !failed {
 		exitCode = m.Run()
+	} else {
+		exitCode = -1
 	}
 
 	for version, container := range containers {
@@ -75,7 +81,7 @@ func TestMain(m *testing.M) {
 		go func() {
 			defer waitGroup.Done()
 
-			if err := cleanupTestContainer(version, container); err != nil {
+			if err := shutdownTestContainer(version, container); err != nil {
 				fmt.Printf("error when cleaning up container %s: %s", version, err) //nolint:forbidigo
 				exitCode = -1
 			}
@@ -86,28 +92,7 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-func cleanupTestContainer(version string, container *testContainer) error {
-	fmt.Printf("cleanup %s...", version) //nolint:forbidigo
-	container.Lock()
-	defer container.Unlock()
-
-	if container.conn != nil {
-		err := container.conn.Close()
-		if err != nil {
-			return fmt.Errorf("failed to close connection to test database %s: %w", version, err)
-		}
-	}
-
-	err := container.container.Terminate(container.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to terminate test container %s: %w", version, err)
-	}
-
-	fmt.Printf("cleanup %s done", version) //nolint:forbidigo
-	return nil
-}
-
-func prepareTestContainer(version string) error {
+func setupTestContainer(version string) error {
 	rootPassword := randomPassword()
 	fmt.Printf("%s - root password: %s", version, rootPassword) //nolint:forbidigo
 
@@ -130,6 +115,31 @@ func prepareTestContainer(version string) error {
 	container.conn = conn
 	return nil
 }
+
+func shutdownTestContainer(version string, container *testContainer) error {
+	fmt.Printf("cleanup %s...", version) //nolint:forbidigo
+	container.Lock()
+	defer container.Unlock()
+
+	if container.conn != nil {
+		err := container.conn.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close connection to test database %s: %w", version, err)
+		}
+	}
+
+	err := container.container.Terminate(container.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to terminate test container %s: %w", version, err)
+	}
+
+	fmt.Printf("cleanup %s done", version) //nolint:forbidigo
+	return nil
+}
+
+//
+// -- templates --------------------------------------
+//
 
 // Templates for test tables
 var (
