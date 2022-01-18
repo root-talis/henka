@@ -27,8 +27,8 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -41,9 +41,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224081255_initial.up.sql":           {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V20211224081255_initial.up.hmf":           {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224081255, Name: "initial"}, CanUndo: false},
@@ -57,9 +57,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"tmp/.Xs223xxSCa": {
 				Mode: fs.ModeDir,
 			},
-			"tmp/.Xs223xxSCa/V20211224081255_initial.up.sql":           {},
-			"tmp/.Xs223xxSCa/V20211224091800_add_users_table.down.sql": {},
-			"tmp/.Xs223xxSCa/V20211224091800_add_users_table.up.sql":   {},
+			"tmp/.Xs223xxSCa/V20211224081255_initial.up.hmf":           {},
+			"tmp/.Xs223xxSCa/V20211224091800_add_users_table.down.hmf": {},
+			"tmp/.Xs223xxSCa/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224081255, Name: "initial"}, CanUndo: false},
@@ -73,9 +73,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V2021122409180_init.up.sql":               {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V2021122409180_init.up.hmf":               {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -88,9 +88,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V_0211224091800_init.up.sql":              {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V_0211224091800_init.up.hmf":              {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -103,9 +103,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/120211224091800_init.up.sql":              {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/120211224091800_init.up.hmf":              {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -118,9 +118,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091800init.up.sql":               {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V20211224091800init.up.hmf":               {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -133,9 +133,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091800.up.sql":                   {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V20211224091800.up.hmf":                   {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -148,9 +148,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091800_.up.sql":                  {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V20211224091800_.up.hmf":                  {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -163,13 +163,13 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091800_init..sql":                {},
-			"migrations/V20211224091800_init.sql":                 {},
+			"migrations/V20211224091800_init..hmf":                {},
+			"migrations/V20211224091800_init.hmf":                 {},
 			"migrations/V20211224091800_init.up":                  {},
 			"migrations/V20211224091800_init.":                    {},
 			"migrations/V20211224091800_init":                     {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -182,11 +182,11 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"V20211224091100_init.up.sql":                         {},
-			"migrations/subdirectory/V20211224091100_init.up.sql": {},
-			"sibling/V20211224091100_init.up.sql":                 {},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"V20211224091100_init.up.hmf":                         {},
+			"migrations/subdirectory/V20211224091100_init.up.hmf": {},
+			"sibling/V20211224091100_init.up.hmf":                 {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -199,11 +199,11 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091700_init.up.sql": {
+			"migrations/V20211224091700_init.up.hmf": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091800_add_users_table.down.sql": {},
-			"migrations/V20211224091800_add_users_table.up.sql":   {},
+			"migrations/V20211224091800_add_users_table.down.hmf": {},
+			"migrations/V20211224091800_add_users_table.up.hmf":   {},
 		},
 		expectedMigrations: []migration.Description{
 			{Migration: migration.Migration{Version: 20211224091800, Name: "add_users_table"}, CanUndo: true},
@@ -218,7 +218,7 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224081255_initial.up.sql": {},
+			"migrations/V20211224081255_initial.up.hmf": {},
 		},
 		expectErrorWhenCreating: true,
 	},
@@ -229,9 +229,9 @@ var getAvailableMigrationsTestTable = []struct { // nolint:gochecknoglobals
 			"migrations": {
 				Mode: fs.ModeDir,
 			},
-			"migrations/V20211224091800_add_users_table.down.sql":   {},
-			"migrations/V20211224091800_add_users_table.up.sql":     {},
-			"migrations/V20211224091800_add_users_table_2.down.sql": {},
+			"migrations/V20211224091800_add_users_table.down.hmf":   {},
+			"migrations/V20211224091800_add_users_table.up.hmf":     {},
+			"migrations/V20211224091800_add_users_table_2.down.hmf": {},
 		},
 		expectErrorWhenCalling: true,
 	},

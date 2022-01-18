@@ -61,9 +61,9 @@ func (rdr *filesSource) GetAvailableMigrations() (*[]migration.Description, erro
 			continue
 		}
 
-		if strings.HasSuffix(fileName, ".up.sql") {
+		if strings.HasSuffix(fileName, ".up.hmf") {
 			err = migrations.updateDescription(mig, migration.Up)
-		} else if strings.HasSuffix(fileName, ".down.sql") {
+		} else if strings.HasSuffix(fileName, ".down.hmf") {
 			err = migrations.updateDescription(mig, migration.Down)
 		}
 
@@ -135,8 +135,8 @@ func getValidMigrationFromFileName(fileName string) (migration.Migration, error)
 	}
 
 	migrationFullName := strings.TrimPrefix(fileName, "V")
-	migrationFullName = strings.TrimSuffix(migrationFullName, ".up.sql")
-	migrationFullName = strings.TrimSuffix(migrationFullName, ".down.sql")
+	migrationFullName = strings.TrimSuffix(migrationFullName, ".up.hmf")
+	migrationFullName = strings.TrimSuffix(migrationFullName, ".down.hmf")
 
 	asRunes := []rune(migrationFullName)
 
