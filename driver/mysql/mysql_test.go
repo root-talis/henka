@@ -275,8 +275,8 @@ var (
 		migrationErr1Sql +
 		migration4Sql
 
-	migrationScript1Up   = "CREATE TABLE users (id int not null auto_increment, primary key (id)) default charset utf8mb4"
-	migrationScript1Down = "DROP TABLE users"
+	migrationScript1 = "CREATE TABLE users (id int not null auto_increment, primary key (id)) default charset utf8mb4"
+	migrationScript2 = "DROP TABLE users"
 )
 
 func makeLogBrief(log migration.Log, startIsNull bool, endIsNull bool) logBrief {
@@ -286,6 +286,14 @@ func makeLogBrief(log migration.Log, startIsNull bool, endIsNull bool) logBrief 
 		direction:       fmt.Sprintf("%c", log.Direction),
 		startedAtIsNull: startIsNull,
 		endedAtIsNull:   endIsNull,
+	}
+}
+
+func makeMigrationDescr(log migration.Log, script string) migrationDescr {
+	return migrationDescr{
+		migration: log.Migration,
+		direction: log.Direction,
+		script:    script,
 	}
 }
 
@@ -464,11 +472,7 @@ var migrateTests = []struct {
 		initialStructure: initDatabaseWithEmptyTable,
 		driverConfig:     defaultDriverConfig,
 		migrations: []migrationDescr{
-			{
-				migration: migration1Parsed.Migration,
-				direction: migration.Up,
-				script:    migrationScript1Up,
-			},
+			makeMigrationDescr(migration1Parsed, migrationScript1),
 		},
 		expectedLog: []logBrief{
 			makeLogBrief(migration1Parsed, false, false),
@@ -485,6 +489,20 @@ var migrateTests = []struct {
 				},
 			},
 		},
+	},
+	/* s1 */ {
+		name:             "s1 - should run and revert single migration",
+		initialStructure: initDatabaseWithEmptyTable,
+		driverConfig:     defaultDriverConfig,
+		migrations: []migrationDescr{
+			makeMigrationDescr(migration1Parsed, migrationScript1),
+			makeMigrationDescr(migration2Parsed, migrationScript2),
+		},
+		expectedLog: []logBrief{
+			makeLogBrief(migration1Parsed, false, false),
+			makeLogBrief(migration2Parsed, false, false),
+		},
+		expectedTables: map[string][]columnDescr{},
 	},
 }
 
@@ -518,10 +536,8 @@ func TestMigrate(t *testing.T) { //nolint:paralleltest,tparallel
 				actualLog := getMigrationsLog(t, conn)
 				assert.Equal(t, test.expectedLog, actualLog)
 
-				for table, expectedStructure := range test.expectedTables {
-					actualStructure := getTableStructure(t, table, conn)
-					assert.Equal(t, expectedStructure, actualStructure)
-				}
+				actualTables := getAllTables(t, conn)
+				assert.Equal(t, test.expectedTables, actualTables)
 
 				runValidationStatements(t, test.validateStatements, conn)
 			})
@@ -592,6 +608,35 @@ func getMigrationsLog(t *testing.T, conn *sql.DB) []logBrief {
 		}
 
 		result = append(result, row)
+	}
+
+	return result
+}
+
+func getAllTables(t *testing.T, conn *sql.DB) map[string][]columnDescr {
+	result := make(map[string][]columnDescr)
+
+	rows, err := conn.Query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'testDatabase'")
+	if err != nil {
+		t.Fatalf("failed to query a list of tables: %s", err)
+	}
+	if err = rows.Err(); err != nil {
+		t.Fatalf("failed to query a list of tables: %s", err)
+	}
+
+	for rows.Next() {
+		var name string
+		err := rows.Scan(&name)
+		if err != nil {
+			t.Fatalf("failed to scan a list of tables: %s", err)
+		}
+
+		if name == "migrations_log" {
+			continue
+		}
+
+		name = fmt.Sprintf("testDatabase.%s", name)
+		result[name] = getTableStructure(t, name, conn)
 	}
 
 	return result
