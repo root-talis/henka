@@ -19,7 +19,7 @@ import (
 	"github.com/root-talis/henka/migration"
 )
 
-// RDBMS versions to test against
+// mysql versions to test against
 var versions = []string{
 	"mysql:8.0",
 	"mysql:5.7",
@@ -64,6 +64,8 @@ var (
 	migration3Sql   = insertMigration + "(\"20220118115519\", \"createUsersTable\", \"u\", \"2022-01-19 10:03:00\", \"2022-01-19 10:03:01\");"
 	migration4Sql   = insertMigration + "(\"20220118120101\", \"createPermissionsTable\", \"u\", \"2022-01-19 10:04:00\", \"2022-01-19 10:04:01\");"
 
+	migrationErr1Sql = insertMigration + "(\"20220118120101\", \"createPermissionsTable\", \"x\", \"2022-01-19 10:04:00\", \"2022-01-19 10:04:01\");"
+
 	migration1Parsed = migration.Log{
 		Migration: migration.Migration{Version: 20220118115519, Name: "createUsersTable"},
 		Direction: migration.Up,
@@ -93,6 +95,12 @@ var (
 		migration2Sql +
 		migration3Sql +
 		migration4Sql
+
+	initDatabaseWithMigrationsErrSet1 = initDatabaseWithEmptyTable +
+		migration1Sql +
+		migration2Sql +
+		migrationErr1Sql +
+		migration4Sql
 )
 
 type validator = func(*testing.T, *sql.Rows)
@@ -101,6 +109,10 @@ type validateStatements = map[string]validator
 var doNothing = func(t *testing.T, _ *sql.Rows) {
 	t.Helper()
 }
+
+//
+// --- ListMigrationsLog test ------------------------
+//
 
 // Test table for TestListMigrationsLog
 var listMigrationsLogTests = []struct {
@@ -111,6 +123,7 @@ var listMigrationsLogTests = []struct {
 	validateStatements validateStatements
 	expectedLog        *[]migration.Log
 }{
+	// -- success cases: ---
 	/* s0 */ {
 		name:             "test s0 - should create new migrations_log table",
 		initialStructure: initEmptyDatabase,
@@ -148,6 +161,7 @@ var listMigrationsLogTests = []struct {
 		expectedLog:      &migrationsSet1Parsed,
 	},
 
+	// -- error cases: -----
 	/* e0 */ {
 		name:             "test e0 - should fail if database doesn't exist",
 		initialStructure: initEmptyDatabase,
@@ -162,6 +176,12 @@ var listMigrationsLogTests = []struct {
 		initialStructure: initDatabaseWithBadTableStructure,
 		expectError:      true,
 		driverConfig:     defaultDriverConfig,
+	},
+	/* e2 */ {
+		name:             "test e2 - should fail if \"direction\" value is incorrect",
+		initialStructure: initDatabaseWithMigrationsErrSet1,
+		driverConfig:     defaultDriverConfig,
+		expectError:      true,
 	},
 }
 
