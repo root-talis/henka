@@ -614,6 +614,8 @@ func getMigrationsLog(t *testing.T, conn *sql.DB) []logBrief {
 }
 
 func getAllTables(t *testing.T, conn *sql.DB) map[string][]columnDescr {
+	t.Helper()
+
 	result := make(map[string][]columnDescr)
 
 	rows, err := conn.Query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'testDatabase'")
@@ -623,6 +625,7 @@ func getAllTables(t *testing.T, conn *sql.DB) map[string][]columnDescr {
 	if err = rows.Err(); err != nil {
 		t.Fatalf("failed to query a list of tables: %s", err)
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var name string
