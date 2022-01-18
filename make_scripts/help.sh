@@ -9,7 +9,8 @@ Commands:
   format     - automatically format source code;
   help       - show this help message;
   lint       - run linters;
-  test       - run tests;
-  test-cover - run tests with coverage;
+  test       - run all tests;
+  test-short - run all tests EXCEPT integration tests;
+  test-cover - run all tests with coverage;
 
 Have fun!"

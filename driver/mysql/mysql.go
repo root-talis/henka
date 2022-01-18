@@ -20,7 +20,7 @@ type mysqlDriver struct {
 	config DriverConfig
 }
 
-func NewMysqlDriver(conn *sql.DB, config DriverConfig) driver.Driver {
+func NewDriver(conn *sql.DB, config DriverConfig) driver.Driver {
 	return &mysqlDriver{
 		conn:   conn,
 		config: config,
@@ -34,7 +34,7 @@ func (drv *mysqlDriver) ListMigrationsLog() (*[]migration.Log, error) {
 		return nil, fmt.Errorf("failed to list applied versions: %w", err)
 	}
 
-	rows, err := drv.conn.Query(fmt.Sprintf(
+	rows, err := drv.query(fmt.Sprintf(
 		"SELECT version, migration_name, direction, start_time FROM %s ORDER BY id",
 		tableName,
 	))
@@ -43,18 +43,33 @@ func (drv *mysqlDriver) ListMigrationsLog() (*[]migration.Log, error) {
 	}
 	defer rows.Close()
 
+	result, err := drv.fetchMigrationsLog(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (drv *mysqlDriver) fetchMigrationsLog(rows *sql.Rows) ([]migration.Log, error) {
 	result := make([]migration.Log, 0)
 	for rows.Next() {
 		var log migration.Log
 		var appliedAt string
 		var direction string
 
-		rows.Scan(
+		err := rows.Scan(
 			&log.Version,
 			&log.Name,
 			&direction,
 			&appliedAt,
 		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query migrations log table: %w", err)
+		}
+		if err = rows.Err(); err != nil {
+			return nil, fmt.Errorf("failed to query migrations log table: %w", err)
+		}
 
 		switch strings.ToLower(direction) {
 		case "u":
@@ -73,7 +88,18 @@ func (drv *mysqlDriver) ListMigrationsLog() (*[]migration.Log, error) {
 		result = append(result, log)
 	}
 
-	return &result, nil
+	return result, nil
+}
+
+func (drv *mysqlDriver) query(query string) (*sql.Rows, error) {
+	rows, err := drv.conn.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute a query: %w", err)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to execute a query: %w", err)
+	}
+	return rows, nil
 }
 
 func (drv *mysqlDriver) makeEscapedMigrationsTableName() string {
@@ -91,8 +117,8 @@ func (drv *mysqlDriver) ensureMigrationsTableExists(escapedTableName *string) er
 			"version        bigint, "+
 			"migration_name varchar(100) null, "+
 			"direction      char(1) null, "+ // "u" or "d"
-			"start_time     timestamp default CURRENT_TIMESTAMP not null, "+
-			"end_time       timestamp default '0000-00-00 00:00:00' not null, "+
+			"start_time     datetime default CURRENT_TIMESTAMP not null, "+
+			"end_time       datetime null, "+
 			"primary key (id)"+
 			") default charset utf8",
 		*escapedTableName,
@@ -107,7 +133,8 @@ func (drv *mysqlDriver) ensureMigrationsTableExists(escapedTableName *string) er
 
 // originally from https://gist.github.com/siddontang/8875771
 func escapeMysqlString(sql string) string { //nolint:cyclop
-	dest := make([]rune, 0, 2*len(sql))
+	const prealloc = 2
+	dest := make([]rune, 0, prealloc*len(sql))
 
 	for _, character := range sql {
 		var escape rune
