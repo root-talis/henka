@@ -51,6 +51,10 @@ func (drv *mysqlDriver) ListMigrationsLog() (*[]migration.Log, error) {
 	return &result, nil
 }
 
+func (drv *mysqlDriver) Migrate(mig migration.Migration, dir migration.Direction, script string) error {
+	return nil
+}
+
 func (drv *mysqlDriver) fetchMigrationsLog(rows *sql.Rows) ([]migration.Log, error) {
 	result := make([]migration.Log, 0)
 	for rows.Next() {

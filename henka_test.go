@@ -46,6 +46,10 @@ func (m *driverMock) ListMigrationsLog() (*[]migration.Log, error) {
 	return &m.appliedMigrations.log, m.appliedMigrations.err
 }
 
+func (m *driverMock) Migrate(migration.Migration, migration.Direction, string) error {
+	return nil
+}
+
 //
 // -- Tests for Henka.Validate() ------------
 //
