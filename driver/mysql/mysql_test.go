@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 			defer waitGroup.Done()
 			if err := setupTestContainer(version); err != nil {
 				failed = true
-				fmt.Printf("error when creating test container for version %s: %s", version, err) //nolint:forbidigo
+				fmt.Printf("error when creating test container for version %s: %s\n", version, err) //nolint:forbidigo
 			}
 		}()
 	}
@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 			defer waitGroup.Done()
 
 			if err := shutdownTestContainer(version, container); err != nil {
-				fmt.Printf("error when cleaning up container %s: %s", version, err) //nolint:forbidigo
+				fmt.Printf("error when cleaning up container %s: %s\n", version, err) //nolint:forbidigo
 				exitCode = -1
 			}
 		}()
@@ -93,8 +93,8 @@ func TestMain(m *testing.M) {
 }
 
 func setupTestContainer(version string) error {
-	rootPassword := randomPassword()
-	fmt.Printf("%s - root password: %s", version, rootPassword) //nolint:forbidigo
+	rootPassword := generateRandomPassword()
+	fmt.Printf("%s - root password: %s\n", version, rootPassword) //nolint:forbidigo
 
 	ctx, mysqlC, err := makeTestContainer(version, rootPassword)
 	if err != nil {
@@ -107,7 +107,7 @@ func setupTestContainer(version string) error {
 	}
 	containers[version] = &container
 
-	conn, err := connect(ctx, mysqlC, rootPassword)
+	conn, err := connectToDatabase(ctx, mysqlC, rootPassword)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database in container %s: %w", version, err)
 	}
@@ -117,7 +117,7 @@ func setupTestContainer(version string) error {
 }
 
 func shutdownTestContainer(version string, container *testContainer) error {
-	fmt.Printf("cleanup %s...", version) //nolint:forbidigo
+	fmt.Printf("cleanup %s...\n", version) //nolint:forbidigo
 	container.Lock()
 	defer container.Unlock()
 
@@ -133,8 +133,72 @@ func shutdownTestContainer(version string, container *testContainer) error {
 		return fmt.Errorf("failed to terminate test container %s: %w", version, err)
 	}
 
-	fmt.Printf("cleanup %s done", version) //nolint:forbidigo
+	fmt.Printf("cleanup %s done\n", version) //nolint:forbidigo
 	return nil
+}
+
+func makeTestContainer(version string, rootPassword string) (context.Context, testcontainers.Container, error) {
+	var env map[string]string
+
+	if strings.HasPrefix(version, "mariadb") {
+		env = map[string]string{
+			"MARIADB_ROOT_PASSWORD": rootPassword,
+		}
+	} else {
+		env = map[string]string{
+			"MYSQL_ROOT_PASSWORD": rootPassword,
+		}
+	}
+
+	ctx := context.Background()
+	req := testcontainers.ContainerRequest{
+		Image:        version,
+		ExposedPorts: []string{"3306/tcp"},
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("3306"),
+			wait.ForLog("mysqld: ready for connections"),
+		),
+		Env: env,
+		Cmd: []string{
+			"--table_definition_cache=10",
+			"--performance_schema=0",
+		},
+	}
+
+	mysqlC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating test container for %s: %w", version, err)
+	}
+
+	return ctx, mysqlC, nil
+}
+
+func connectToDatabase(ctx context.Context, mysqlC testcontainers.Container, rootPassword string) (*sql.DB, error) {
+	endpoint, err := mysqlC.Endpoint(ctx, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get endpoint for test container: %w", err)
+	}
+
+	conn, err := sql.Open("mysql",
+		fmt.Sprintf("root:%s@tcp(%s)/mysql?multiStatements=true", rootPassword, endpoint))
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to %s: %w", endpoint, err)
+	}
+
+	return conn, nil
+}
+
+func generateRandomPassword() string {
+	const length = 8
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		panic(fmt.Errorf("failed to generate a random password: %w", err))
+	}
+	return fmt.Sprintf("%x", b)[:length]
 }
 
 //
@@ -369,70 +433,6 @@ func runForAllMysqlVersions(t *testing.T, baseName string, test func(t *testing.
 			test(t, version, container.conn)
 		})
 	}
-}
-
-func makeTestContainer(version string, rootPassword string) (context.Context, testcontainers.Container, error) {
-	var env map[string]string
-
-	if strings.HasPrefix(version, "mariadb") {
-		env = map[string]string{
-			"MARIADB_ROOT_PASSWORD": rootPassword,
-		}
-	} else {
-		env = map[string]string{
-			"MYSQL_ROOT_PASSWORD": rootPassword,
-		}
-	}
-
-	ctx := context.Background()
-	req := testcontainers.ContainerRequest{
-		Image:        version,
-		ExposedPorts: []string{"3306/tcp"},
-		WaitingFor: wait.ForAll(
-			wait.ForListeningPort("3306"),
-			wait.ForLog("mysqld: ready for connections"),
-		),
-		Env: env,
-		Cmd: []string{
-			"--table_definition_cache=10",
-			"--performance_schema=0",
-		},
-	}
-
-	mysqlC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating test container for %s: %w", version, err)
-	}
-
-	return ctx, mysqlC, nil
-}
-
-func connect(ctx context.Context, mysqlC testcontainers.Container, rootPassword string) (*sql.DB, error) {
-	endpoint, err := mysqlC.Endpoint(ctx, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get endpoint for test container: %w", err)
-	}
-
-	conn, err := sql.Open("mysql",
-		fmt.Sprintf("root:%s@tcp(%s)/mysql?multiStatements=true", rootPassword, endpoint))
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %s: %w", endpoint, err)
-	}
-
-	return conn, nil
-}
-
-func randomPassword() string {
-	const length = 8
-	b := make([]byte, length)
-	if _, err := rand.Read(b); err != nil {
-		panic(fmt.Errorf("failed to generate a random password: %w", err))
-	}
-	return fmt.Sprintf("%x", b)[:length]
 }
 
 func runValidationStatements(t *testing.T, validateStatements validateStatements, conn *sql.DB) {
